@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Chatbot RAG · Turismo no Brasil</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --bubble-user: #2563eb;
+    --bubble-bot: #334155;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #22c55e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px 12px;
+  }
+  .app {
+    width: 100%;
+    max-width: 720px;
+    display: flex;
+    flex-direction: column;
+    height: 90vh;
+    background: var(--panel);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+  header {
+    padding: 18px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  header h1 {
+    margin: 0;
+    font-size: 18px;
+  }
+  header p {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  #chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .msg {
+    max-width: 82%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    line-height: 1.45;
+    font-size: 14.5px;
+    white-space: pre-wrap;
+  }
+  .msg.user {
+    align-self: flex-end;
+    background: var(--bubble-user);
+    color: white;
+    border-bottom-right-radius: 4px;
+  }
+  .msg.bot {
+    align-self: flex-start;
+    background: var(--bubble-bot);
+    border-bottom-left-radius: 4px;
+  }
+  .msg .sources {
+    display: block;
+    margin-top: 6px;
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+  .msg.typing {
+    color: var(--muted);
+    font-style: italic;
+  }
+  form {
+    display: flex;
+    gap: 8px;
+    padding: 14px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  input[type="text"] {
+    flex: 1;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: #0f172a;
+    color: var(--text);
+    font-size: 14.5px;
+    outline: none;
+  }
+  input[type="text"]:focus {
+    border-color: var(--accent);
+  }
+  button {
+    padding: 0 18px;
+    border-radius: 10px;
+    border: none;
+    background: var(--accent);
+    color: #052e16;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14.5px;
+  }
+  button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>🧭 Chatbot RAG — Turismo no Brasil</h1>
+      <p>Pergunte sobre destinos, cultura, clima, segurança e mais. Respostas baseadas na base de conhecimento do projeto.</p>
+    </header>
+
+    <div id="chat"></div>
+
+    <form id="chat-form">
+      <input
+        type="text"
+        id="message-input"
+        placeholder="Digite sua pergunta, ex: Qual a melhor época para visitar o Pantanal?"
+        autocomplete="off"
+      />
+      <button type="submit" id="send-btn">Enviar</button>
+    </form>
+  </div>
+
+  <script>
+    const API_URL = window.location.origin;
+    const chatEl = document.getElementById("chat");
+    const formEl = document.getElementById("chat-form");
+    const inputEl = document.getElementById("message-input");
+    const sendBtn = document.getElementById("send-btn");
+
+    let sessionId = localStorage.getItem("rag_session_id") || null;
+
+    function addMessage(role, text, sources = []) {
+      const div = document.createElement("div");
+      div.className = `msg ${role}`;
+      div.textContent = text;
+      if (sources && sources.length > 0) {
+        const src = document.createElement("span");
+        src.className = "sources";
+        src.textContent = "Fontes: " + sources.join(", ");
+        div.appendChild(src);
+      }
+      chatEl.appendChild(div);
+      chatEl.scrollTop = chatEl.scrollHeight;
+      return div;
+    }
+
+    addMessage(
+      "bot",
+      "Olá! 👋 Sou um chatbot especializado em turismo no Brasil, construído com RAG (Retrieval-Augmented Generation). Pergunte à vontade!"
+    );
+
+    formEl.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const message = inputEl.value.trim();
+      if (!message) return;
+
+      addMessage("user", message);
+      inputEl.value = "";
+      sendBtn.disabled = true;
+
+      const typingEl = addMessage("bot typing", "Pensando...");
+
+      try {
+        const resp = await fetch(`${API_URL}/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message, session_id: sessionId }),
+        });
+
+        if (!resp.ok) {
+          const errData = await resp.json().catch(() => ({}));
+          throw new Error(errData.detail || `Erro HTTP ${resp.status}`);
+        }
+
+        const data = await resp.json();
+        sessionId = data.session_id;
+        localStorage.setItem("rag_session_id", sessionId);
+
+        typingEl.remove();
+        addMessage("bot", data.answer, data.sources);
+      } catch (err) {
+        typingEl.remove();
+        addMessage("bot", "⚠️ " + err.message);
+      } finally {
+        sendBtn.disabled = false;
+        inputEl.focus();
+      }
+    });
+  </script>
+</body>
+</html>
