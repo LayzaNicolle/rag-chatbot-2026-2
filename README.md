@@ -2,12 +2,16 @@
 
 Chatbot web desenvolvido em **Python** para responder perguntas em linguagem natural sobre **turismo no Brasil**, utilizando **Retrieval-Augmented Generation (RAG)**, busca vetorial e **LangGraph** para orquestração do fluxo.
 
+---
+
 ## Equipe
 
 * Estevão Chagas
 * Layza Nicolle
 * Matheus Pablo
 * Vinicius Simas
+
+---
 
 ## Sobre o projeto
 
@@ -32,6 +36,8 @@ Resposta
 ```
 
 A utilização de RAG permite que as respostas sejam fundamentadas nos documentos disponíveis na base de conhecimento, reduzindo a necessidade de a LLM utilizar informações externas ao conteúdo fornecido.
+
+---
 
 ## Domínio e base de conhecimento
 
@@ -67,6 +73,8 @@ Os documentos ficam armazenados em:
 knowledge_base/
 ```
 
+---
+
 ## Arquitetura
 
 ```text
@@ -98,6 +106,8 @@ Base de
 Conhecimento
 ```
 
+---
+
 ## Pipeline RAG
 
 1. Os documentos da `knowledge_base/` são carregados.
@@ -112,6 +122,8 @@ Conhecimento
 10. A resposta é retornada ao usuário.
 
 Esse processo permite que a geração seja baseada nas informações recuperadas da própria base de conhecimento.
+
+---
 
 ## Estrutura do projeto
 
@@ -144,7 +156,9 @@ rag-chatbot/
 └── README.md
 ```
 
-### Principais componentes
+---
+
+## Principais componentes
 
 | Componente              | Função                              |
 | ----------------------- | ----------------------------------- |
@@ -156,6 +170,8 @@ rag-chatbot/
 | `backend/ingest.py`     | Processamento e indexação da base   |
 | `knowledge_base/`       | Documentos utilizados pelo RAG      |
 | `data/`                 | Arquivos gerados pelo processamento |
+
+---
 
 ## Tecnologias
 
@@ -170,28 +186,51 @@ rag-chatbot/
 * **Pydantic**
 * **Uvicorn**
 
+---
+
+# Instalação
+
 ## Pré-requisitos
+
+Antes de executar o projeto, certifique-se de possuir:
 
 * Python **3.10+**
 * `pip`
-* Chave de API da LLM
 * Git
+* Chave de API da LLM
 
-## Configuração
-
-Clone o projeto:
+Verifique as versões instaladas:
 
 ```bash
-git clone https://github.com/SEU-USUARIO/SEU-REPOSITORIO.git
-cd SEU-REPOSITORIO
+python --version
+pip --version
+git --version
 ```
 
-Crie o ambiente virtual:
+---
+
+## Clonar o projeto
+
+```bash
+git clone URL_DO_REPOSITORIO
+cd rag-chatbot
+```
+
+Caso o projeto tenha sido baixado como `.zip`, basta extrair os arquivos e abrir o terminal dentro da pasta do projeto.
+
+---
+
+## Criar o ambiente virtual
 
 ### Windows
 
 ```bash
 python -m venv venv
+```
+
+Ative o ambiente:
+
+```bash
 venv\Scripts\activate
 ```
 
@@ -199,44 +238,119 @@ venv\Scripts\activate
 
 ```bash
 python3 -m venv venv
+```
+
+Ative o ambiente:
+
+```bash
 source venv/bin/activate
 ```
 
-Instale as dependências:
+---
+
+## Instalar as dependências
+
+Com o ambiente virtual ativado:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Crie um arquivo `.env` na raiz do projeto:
+---
+
+# Configuração da API
+
+Na raiz do projeto, crie um arquivo chamado:
+
+```text
+.env
+```
+
+Adicione:
 
 ```env
 LLM_PROVIDER=groq
 GROQ_API_KEY=sua_chave_aqui
-GROQ_MODEL=llama-3.1-8b-instant
+GROQ_MODEL=openai/gpt-oss-20b
 ```
 
-## Executando o projeto
+Substitua `sua_chave_aqui` pela sua chave de API.
 
-Primeiro, processe a base de conhecimento:
+### Configurações opcionais
+
+Também podem ser configurados:
+
+```env
+EMBEDDING_MODEL_NAME=paraphrase-multilingual-MiniLM-L12-v2
+CHUNK_SIZE=800
+CHUNK_OVERLAP=120
+TOP_K=4
+MAX_HISTORY_TURNS=4
+```
+
+---
+
+# Executando o projeto
+
+## 1. Processar a base de conhecimento
+
+Antes de iniciar a API, execute:
 
 ```bash
 python backend/ingest.py
 ```
 
-Depois, inicie a API:
+Esse processo irá carregar os documentos da pasta `knowledge_base/`, gerar os embeddings e criar o índice vetorial utilizado pelo RAG.
+
+---
+
+## 2. Iniciar a API
+
+Depois do processamento:
 
 ```bash
 uvicorn backend.main:app --reload
 ```
 
-Acesse:
+A API ficará disponível em:
 
 ```text
 http://127.0.0.1:8000
 ```
 
-### Endpoints
+---
+
+## 3. Acessar o chatbot
+
+Abra no navegador:
+
+```text
+http://127.0.0.1:8000
+```
+
+---
+
+# Execução rápida
+
+Depois que o projeto estiver configurado, os comandos principais são:
+
+### Windows
+
+```bash
+venv\Scripts\activate
+python backend/ingest.py
+uvicorn backend.main:app --reload
+```
+
+Depois acesse:
+
+```text
+http://127.0.0.1:8000
+```
+
+---
+
+# Endpoints
 
 | Método | Endpoint  | Descrição                |
 | ------ | --------- | ------------------------ |
@@ -245,7 +359,15 @@ http://127.0.0.1:8000
 | `GET`  | `/health` | Verifica o status da API |
 | `GET`  | `/docs`   | Documentação da API      |
 
-## Exemplo de requisição
+A documentação interativa do FastAPI pode ser acessada em:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+---
+
+# Exemplo de requisição
 
 ```json
 {
@@ -254,7 +376,9 @@ http://127.0.0.1:8000
 }
 ```
 
-## Exemplo de resposta
+---
+
+# Exemplo de resposta
 
 ```json
 {
@@ -264,11 +388,145 @@ http://127.0.0.1:8000
 }
 ```
 
-## Histórico de conversa
+---
 
-O chatbot mantém o histórico das mensagens por meio de um `session_id`.
+# Exemplos de prompts
+
+O chatbot foi desenvolvido para responder perguntas relacionadas ao conteúdo da base de conhecimento sobre turismo no Brasil.
+
+## Perguntas sobre destinos
+
+```text
+Quais são os principais pontos turísticos de Recife?
+```
+
+```text
+O que posso conhecer em Foz do Iguaçu?
+```
+
+```text
+Quais são os principais pontos turísticos de Salvador?
+```
+
+```text
+O que um turista pode fazer em Fernando de Noronha?
+```
+
+---
+
+## Comparações
+
+```text
+Compare Recife e Salvador como destinos turísticos.
+```
+
+```text
+Compare Gramado e Florianópolis.
+```
+
+```text
+Qual a diferença entre o turismo na Amazônia e no Pantanal?
+```
+
+---
+
+## Cultura e eventos
+
+```text
+O que é o Carnaval brasileiro?
+```
+
+```text
+Quais são as características das Festas Juninas no Brasil?
+```
+
+```text
+Quais destinos brasileiros possuem destaque cultural?
+```
+
+---
+
+## Transporte
+
+```text
+Quais são as principais formas de transporte utilizadas pelos turistas no Brasil?
+```
+
+```text
+Quais informações sobre transporte estão disponíveis na base de conhecimento?
+```
+
+---
+
+## Segurança
+
+```text
+Quais cuidados de segurança são recomendados para turistas no Brasil?
+```
+
+```text
+Quais informações sobre segurança estão disponíveis na base de conhecimento?
+```
+
+---
+
+## Recife e Olinda
+
+```text
+Quais são os principais pontos turísticos de Recife e Olinda?
+```
+
+```text
+O que um turista pode fazer em Recife?
+```
+
+```text
+Quais atrações históricas existem em Olinda?
+```
+
+---
+
+## Testando o RAG
+
+Para demonstrar o funcionamento da arquitetura RAG:
+
+```text
+Com base na base de conhecimento, quais destinos brasileiros são citados como opções de ecoturismo?
+```
+
+```text
+Segundo os documentos disponíveis, quais informações existem sobre Fernando de Noronha?
+```
+
+```text
+Quais informações sobre turismo no Brasil estão presentes na base de conhecimento?
+```
+
+---
+
+# Histórico de conversa
+
+O chatbot mantém o histórico das mensagens utilizando um `session_id`.
 
 Isso permite que perguntas de continuidade sejam consideradas dentro da mesma conversa.
+
+Exemplo:
+
+```text
+Quais são os principais pontos turísticos de Recife?
+```
+
+Depois:
+
+```text
+E quais deles são históricos?
+```
+
+E:
+
+```text
+Qual seria um roteiro para conhecer esses lugares?
+```
 
 A quantidade de turnos armazenados pode ser configurada através de:
 
@@ -276,7 +534,9 @@ A quantidade de turnos armazenados pode ser configurada através de:
 MAX_HISTORY_TURNS=4
 ```
 
-## Configurações principais
+---
+
+# Configurações principais
 
 As principais configurações podem ser ajustadas através do arquivo `.env`:
 
@@ -288,22 +548,44 @@ TOP_K=4
 MAX_HISTORY_TURNS=4
 ```
 
-## Considerações
+### `EMBEDDING_MODEL_NAME`
+
+Define o modelo utilizado para gerar os embeddings.
+
+### `CHUNK_SIZE`
+
+Define o tamanho dos trechos nos quais os documentos serão divididos.
+
+### `CHUNK_OVERLAP`
+
+Define a sobreposição entre os chunks.
+
+### `TOP_K`
+
+Define a quantidade de trechos recuperados pelo mecanismo de busca vetorial.
+
+### `MAX_HISTORY_TURNS`
+
+Define a quantidade de turnos da conversa mantidos no histórico.
+
+---
+
+# Considerações
 
 O projeto foi desenvolvido com foco acadêmico, demonstrando a integração entre:
 
 ```text
 Base de Conhecimento
         +
-Embeddings
+    Embeddings
         +
-Busca Vetorial
+   Busca Vetorial
         +
-LangGraph
+     LangGraph
         +
-LLM
+        LLM
         =
-Chatbot RAG
+   Chatbot RAG
 ```
 
-A aplicação utiliza a base de conhecimento como fonte para recuperação das informações antes da geração das respostas, demonstrando na prática o funcionamento de uma arquitetura **Retrieval-Augmented Generation**.
+A aplicação utiliza a base de conhecimento como fonte para recuperação das informações antes da geração das respostas, demonstrando na prática o funcionamento de uma arquitetura **Retrieval-Augmented Generation (RAG)**.
