@@ -1,15 +1,13 @@
 """
-Cliente de LLM externa, usado exclusivamente na etapa de GERAÇÃO da resposta
-final do fluxo de RAG (nunca para embeddings ou recuperação).
+Cliente de LLM externa, usado nas etapas de classificação, avaliação de
+evidência e geração da resposta do fluxo de RAG (nunca para embeddings).
 
 Suporta:
 - Groq (padrão, possui tier gratuito e API compatível com o formato OpenAI)
 - OpenAI
 
 Para trocar de provedor, basta alterar LLM_PROVIDER no .env.
-Para adicionar outro provedor (Hugging Face, Gemini, NVIDIA NIM, DeepSeek...),
-implemente uma nova função `_call_<provedor>` seguindo o mesmo contrato:
-recebe uma lista de mensagens no formato OpenAI e retorna uma string.
+Contrato: recebe uma lista de mensagens no formato OpenAI e retorna uma string.
 """
 import requests
 
@@ -20,7 +18,14 @@ class LLMError(RuntimeError):
     pass
 
 
-def _call_openai_compatible(url: str, api_key: str, model: str, messages: list[dict]) -> str:
+def _call_openai_compatible(
+    url: str,
+    api_key: str,
+    model: str,
+    messages: list[dict],
+    temperature: float,
+    max_tokens: int,
+) -> str:
     if not api_key:
         raise LLMError(
             "Chave de API não configurada. Defina a variável de ambiente "
@@ -34,8 +39,8 @@ def _call_openai_compatible(url: str, api_key: str, model: str, messages: list[d
     payload = {
         "model": model,
         "messages": messages,
-        "temperature": 0.3,
-        "max_tokens": 700,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
     }
 
     response = requests.post(url, headers=headers, json=payload, timeout=60)
@@ -51,20 +56,24 @@ def _call_openai_compatible(url: str, api_key: str, model: str, messages: list[d
         raise LLMError(f"Resposta inesperada da LLM externa: {data}") from exc
 
 
-def generate_answer(messages: list[dict]) -> str:
+def generate_answer(
+    messages: list[dict], temperature: float = 0.3, max_tokens: int = 700
+) -> str:
     """
-    Envia as mensagens (formato OpenAI: [{"role": ..., "content": ...}, ...])
-    para o provedor de LLM configurado e retorna o texto da resposta.
+    Envia as mensagens (formato OpenAI) para o provedor configurado e retorna
+    o texto da resposta. Classificador e avaliador usam temperature=0.
     """
     provider = config.LLM_PROVIDER.lower()
 
     if provider == "groq":
         return _call_openai_compatible(
-            config.GROQ_API_URL, config.GROQ_API_KEY, config.GROQ_MODEL, messages
+            config.GROQ_API_URL, config.GROQ_API_KEY, config.GROQ_MODEL,
+            messages, temperature, max_tokens,
         )
     if provider == "openai":
         return _call_openai_compatible(
-            config.OPENAI_API_URL, config.OPENAI_API_KEY, config.OPENAI_MODEL, messages
+            config.OPENAI_API_URL, config.OPENAI_API_KEY, config.OPENAI_MODEL,
+            messages, temperature, max_tokens,
         )
 
     raise LLMError(
