@@ -140,6 +140,7 @@ rag-chatbot/
 │   ├── rag_graph.py
 │   ├── llm_client.py
 │   └── ingest.py
+
 │
 ├── knowledge_base/
 │   ├── 01_rio_de_janeiro.txt
@@ -194,7 +195,7 @@ rag-chatbot/
 
 Antes de executar o projeto, certifique-se de possuir:
 
-* Python **3.10+**
+* Python 3.10 a 3.12
 * `pip`
 * Git
 * Chave de API da LLM
@@ -569,6 +570,56 @@ Define a quantidade de trechos recuperados pelo mecanismo de busca vetorial.
 Define a quantidade de turnos da conversa mantidos no histórico.
 
 ---
+
+---
+
+# Engenharia de Prompt (versão refinada)
+
+O fluxo do LangGraph foi evoluído para separar as responsabilidades em prompts distintos (`backend/prompts.py`):
+
+```text
+receive_question
+      ↓
+   classify ────(INJECAO / FORA_DOMINIO)────────→ finalize
+      ↓
+retrieve_context ──(melhor score < MIN_SCORE)───→ finalize
+      ↓
+evaluate_evidence ──(INSUFICIENTE)──────────────→ finalize
+      ↓
+build_prompt → call_llm → finalize
+```
+
+| Prompt | Função | Técnica |
+| --- | --- | --- |
+| Classificador | Categoria (`TURISMO`, `FORA_DOMINIO`, `INJECAO`) e segurança, em JSON | Zero-shot e few-shot |
+| Avaliador | Verifica se o contexto sustenta a resposta (`SUFICIENTE`/`INSUFICIENTE`) | Few-shot |
+| Gerador | Resposta usando exclusivamente o contexto | Papel, regras, delimitadores |
+
+- O contexto recuperado é tratado como **dado**: fica dentro de `<contexto>`, e tags delimitadoras presentes nos dados são neutralizadas por `sanitize()`.
+- Sem evidência, o sistema responde "Não encontrei essa informação na base consultada." sem chamar o gerador.
+- O fluxo original continua disponível com `USE_REFINED_FLOW=0`, para comparação antes/depois.
+
+## Parâmetros adicionais (`.env`)
+
+```env
+MIN_SCORE=0.47            # score mínimo do melhor chunk
+CLASSIFIER_FEWSHOT=0      # 0 = zero-shot, 1 = few-shot
+USE_EVALUATOR=1           # liga/desliga o avaliador de evidência
+USE_REFINED_FLOW=1        # 0 = fluxo original (antes)
+```
+
+## Testes
+
+O documento `knowledge_base/99_dicas_extras.txt` contém uma injection indireta proposital, usada nos testes.
+
+```bash
+python -m backend.run_tests antes          # fluxo original
+python -m backend.run_tests zeroshot       # refinado, classificador zero-shot
+python -m backend.run_tests fewshot        # refinado, classificador few-shot
+python -m backend.run_tests classificador  # compara zero-shot x few-shot
+```
+
+Os resultados são salvos em `data/resultados_<modo>.json`.
 
 # Considerações
 
