@@ -179,7 +179,7 @@ def make_nodes(resources: RAGResources):
     # ----- fluxo refinado -------------------------------------------------
     def classify(state: RAGState) -> RAGState:
         if state.get("error"):
-            return {}
+            return state
         try:
             result = classify_question(
                 state["question"], state.get("chat_history") or [], config.CLASSIFIER_FEWSHOT
@@ -202,7 +202,7 @@ def make_nodes(resources: RAGResources):
 
     def retrieve_context(state: RAGState) -> RAGState:
         if state.get("error") or state.get("outcome"):
-            return {}
+            return state
         chunks = resources.search(state["question"], config.TOP_K)
         update: RAGState = {"retrieved_chunks": chunks}
         # Gate por score (sem LLM): nenhum chunk relevante -> sem evidência
@@ -213,7 +213,7 @@ def make_nodes(resources: RAGResources):
 
     def evaluate_evidence(state: RAGState) -> RAGState:
         if state.get("error") or state.get("outcome") or not config.USE_EVALUATOR:
-            return {}
+            return state
         user = prompts.EVALUATOR_USER_TEMPLATE.format(
             context=format_context(state["retrieved_chunks"]),
             question=sanitize(state["question"]),
@@ -232,11 +232,11 @@ def make_nodes(resources: RAGResources):
         # "INSUFICIENTE" contém "SUFICIENTE": testar o negativo primeiro
         if "INSUFICIENTE" in verdict:
             return {"outcome": "no_evidence", "answer": MSG_NOT_FOUND}
-        return {}
+        return state
 
     def build_prompt(state: RAGState) -> RAGState:
         if state.get("error") or state.get("outcome"):
-            return {}
+            return state
         messages = [{"role": "system", "content": prompts.SYSTEM_GENERATOR_PROMPT}]
         for turn in (state.get("chat_history") or [])[-(config.MAX_HISTORY_TURNS * 2):]:
             messages.append({"role": turn["role"], "content": turn["content"]})
@@ -254,7 +254,7 @@ def make_nodes(resources: RAGResources):
     # ----- fluxo original (antes) ----------------------------------------
     def build_prompt_legacy(state: RAGState) -> RAGState:
         if state.get("error"):
-            return {}
+            return state
         context_text = "\n\n---\n\n".join(
             f"[Fonte: {c['source']}]\n{c['text']}" for c in state["retrieved_chunks"]
         )
@@ -275,7 +275,7 @@ def make_nodes(resources: RAGResources):
     # ----- comuns ---------------------------------------------------------
     def call_llm(state: RAGState) -> RAGState:
         if state.get("error") or state.get("outcome"):
-            return {}
+            return state
         try:
             answer = generate_answer(state["prompt_messages"])
         except LLMError as exc:

@@ -9,6 +9,8 @@ Suporta:
 Para trocar de provedor, basta alterar LLM_PROVIDER no .env.
 Contrato: recebe uma lista de mensagens no formato OpenAI e retorna uma string.
 """
+import time
+
 import requests
 
 from backend import config
@@ -16,6 +18,9 @@ from backend import config
 
 class LLMError(RuntimeError):
     pass
+
+
+MAX_RETRIES = 6
 
 
 def _call_openai_compatible(
@@ -49,7 +54,19 @@ def _call_openai_compatible(
         payload["reasoning_effort"] = "low"
         payload["max_tokens"] = max_tokens + 500
 
-    response = requests.post(url, headers=headers, json=payload, timeout=60)
+    response = None
+    for attempt in range(1, MAX_RETRIES + 1):
+        response = requests.post(url, headers=headers, json=payload, timeout=60)
+        if response.status_code != 429:
+            break
+        # Limite de taxa (tokens por minuto): espera e tenta de novo
+        retry_after = response.headers.get("retry-after")
+        try:
+            wait = float(retry_after) + 1 if retry_after else 5 * attempt
+        except ValueError:
+            wait = 5 * attempt
+        time.sleep(min(wait, 30))
+
     if response.status_code != 200:
         raise LLMError(
             f"Erro ao chamar a LLM externa ({response.status_code}): {response.text[:500]}"
