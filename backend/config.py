@@ -32,6 +32,27 @@ OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
 
 MAX_HISTORY_TURNS = int(os.getenv("MAX_HISTORY_TURNS", "4"))
 
+# ---------------------------------------------------------------------------
+# Engenharia de Prompt (atividade atual)
+# ---------------------------------------------------------------------------
+# True  = fluxo refinado (classificador -> gate de score -> avaliador -> gerador)
+# False = fluxo ORIGINAL (usado para gerar o "antes" da comparação)
+USE_REFINED_FLOW = os.getenv("USE_REFINED_FLOW", "1") == "1"
+
+# False = classificador zero-shot | True = classificador few-shot
+CLASSIFIER_FEWSHOT = os.getenv("CLASSIFIER_FEWSHOT", "0") == "1"
+
+# Score mínimo (similaridade de cosseno) do MELHOR chunk. Abaixo disso, o grafo
+# responde "não encontrei" sem chamar a LLM. Ajuste observando os scores reais.
+MIN_SCORE = float(os.getenv("MIN_SCORE", "0.47"))
+
+# Liga/desliga o nó avaliador de evidência (1 chamada extra de LLM)
+USE_EVALUATOR = os.getenv("USE_EVALUATOR", "1") == "1"
+
+# Quantos turnos recentes o classificador enxerga (para perguntas de continuação)
+CLASSIFIER_HISTORY_TURNS = int(os.getenv("CLASSIFIER_HISTORY_TURNS", "2"))
+
+# Prompt ORIGINAL (mantido apenas para o fluxo "antes")
 SYSTEM_PROMPT = (
     "Você é um assistente virtual especialista em turismo no Brasil. "
     "Responda SEMPRE em português, de forma clara e objetiva, baseando-se "
