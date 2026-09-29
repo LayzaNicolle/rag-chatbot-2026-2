@@ -60,3 +60,29 @@ def _call_openai_compatible(
         return (data["choices"][0]["message"]["content"] or "").strip()
     except (KeyError, IndexError) as exc:
         raise LLMError(f"Resposta inesperada da LLM externa: {data}") from exc
+
+
+def generate_answer(
+    messages: list[dict], temperature: float = 0.3, max_tokens: int = 700
+) -> str:
+    """
+    Envia as mensagens (formato OpenAI) para o provedor configurado e retorna
+    o texto da resposta. Classificador e avaliador usam temperature=0.
+    """
+    provider = config.LLM_PROVIDER.lower()
+
+    if provider == "groq":
+        return _call_openai_compatible(
+            config.GROQ_API_URL, config.GROQ_API_KEY, config.GROQ_MODEL,
+            messages, temperature, max_tokens,
+        )
+    if provider == "openai":
+        return _call_openai_compatible(
+            config.OPENAI_API_URL, config.OPENAI_API_KEY, config.OPENAI_MODEL,
+            messages, temperature, max_tokens,
+        )
+
+    raise LLMError(
+        f"Provedor de LLM '{provider}' não suportado. Use 'groq' ou 'openai', "
+        "ou implemente um novo provedor em backend/llm_client.py."
+    )
