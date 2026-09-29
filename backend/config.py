@@ -44,7 +44,7 @@ CLASSIFIER_FEWSHOT = os.getenv("CLASSIFIER_FEWSHOT", "0") == "1"
 
 # Score mínimo (similaridade de cosseno) do MELHOR chunk. Abaixo disso, o grafo
 # responde "não encontrei" sem chamar a LLM. Ajuste observando os scores reais.
-MIN_SCORE = float(os.getenv("MIN_SCORE", "0.30"))
+MIN_SCORE = float(os.getenv("MIN_SCORE", "0.47"))
 
 # Liga/desliga o nó avaliador de evidência (1 chamada extra de LLM)
 USE_EVALUATOR = os.getenv("USE_EVALUATOR", "1") == "1"
